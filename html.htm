@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Winnipeg Life: Playbook and Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e9f1f6;--card:#fff;--ink:#0f2438;--mut:#5b7186;--acc:#e8590c;--ln:#c9d8e3;--good:#2b8a3e;--bad:#c92a2a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c1822;--card:#142636;--ink:#e6eef5;--mut:#8ca3b7;--acc:#ff8a3d;--ln:#26405a;--good:#69db7c;--bad:#ff8787}}
+:root[data-theme="dark"]{--bg:#0c1822;--card:#142636;--ink:#e6eef5;--mut:#8ca3b7;--acc:#ff8a3d;--ln:#26405a;--good:#69db7c;--bad:#ff8787}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 Barlow,system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1,h2,.num{font-family:"Barlow Condensed","Arial Narrow",sans-serif;margin:0}
+h1{font-size:44px;font-weight:800;line-height:1}
+.sign{display:inline-block;background:var(--acc);color:#fff;font:800 14px "Barlow Condensed",sans-serif;padding:2px 8px;border-radius:3px;letter-spacing:.5px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:8px;padding:14px;margin:12px 0}
+button{font:600 15px Barlow,sans-serif;color:var(--ink);background:var(--card);border:1px solid var(--ln);border-radius:6px;padding:10px 12px;cursor:pointer;text-align:left;width:100%}
+button:hover:not(:disabled){border-color:var(--acc)}
+button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.go{background:var(--acc);color:#fff;border-color:var(--acc);text-align:center;font-size:17px}
+.grid{display:grid;gap:8px;grid-template-columns:1fr 1fr}
+@media(max-width:480px){.grid{grid-template-columns:1fr}}
+small{color:var(--mut);display:block;font-weight:400}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat .num{font-size:30px;font-weight:800;line-height:1}
+.bar{height:6px;background:var(--ln);border-radius:3px;margin-top:4px}.bar i{display:block;height:100%;border-radius:3px;background:var(--acc)}
+.wx{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.log p{margin:4px 0;padding-left:10px;border-left:3px solid var(--ln)}
+.log p.g{border-color:var(--good)}.log p.b{border-color:var(--bad)}.log p.e{border-color:var(--acc)}
+.hide{display:none}
+#toast{position:fixed;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none}
+.t{background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:20px;font:700 16px Barlow,sans-serif;animation:up 1.7s forwards}
+@keyframes up{0%{opacity:0;transform:translateY(12px)}15%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.t{animation:none}}
+.tabs{display:flex;gap:8px;margin:0 0 12px}.tabs button{text-align:center;font-weight:800;font-size:16px}
+.tabs button.on,button.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.chip{width:auto;display:inline-block;margin:0 6px 6px 0;border-radius:20px;padding:6px 12px}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:6px;padding:8px;width:100%}
+label{display:block;font-size:13px;color:var(--mut);font-weight:600}
+.it{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--ln)}.it input{width:22px;height:22px;margin-top:2px;flex:none}
+.it.dn b{text-decoration:line-through;color:var(--mut)}.pg{height:8px;background:var(--ln);border-radius:4px}.pg i{display:block;height:100%;background:var(--good);border-radius:4px}
+#cv{width:100%;height:380px;display:block;border-radius:8px;background:#cfe3ee;touch-action:none}
+.tip{border-left:3px solid var(--acc);padding-left:10px;margin:6px 0}
+</style></head><body><main>
+<div class="tabs"><button id="t-w" class="on" onclick="tab('w')">World</button><button id="t-p" onclick="tab('p')">Playbook</button><button id="t-g" onclick="tab('g')">Game</button></div>
+<div id="wd"><div class="card" style="padding:6px"><canvas id="cv" aria-label="Interactive map of Winnipeg. Use arrow keys, WASD or tap to move."></canvas></div>
+<small id="whud"></small>
+<div class="card"><div id="wav"></div><div id="wem"></div><div id="wlog" style="margin:8px 0"></div>
+<div style="display:flex;gap:6px"><input id="wsay" maxlength="80" placeholder="Say something to the world" onkeydown="if(event.key=='Enter')wSend()"><button style="width:auto" onclick="wSend()">Send</button></div></div>
+<div class="card" id="wpan"></div>
+<div class="card"><h2>Take the bus</h2><div id="wgo" style="margin-top:8px"></div></div></div>
+<div id="pb" class="hide"></div><div id="app" class="hide"></div>
+<div id="toast" aria-live="polite"></div>
+</main>
+<script>
+const mulb=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+let rng=Math.random;
+const $=s=>document.querySelector(s),R=(a,b)=>a+Math.floor(rng()*(b-a+1)),pick=a=>a[R(0,a.length-1)];
+let S,PP,HARD=0;
+const B=(n,nw,d,gn,gt,cn,ct,fn,fph,fc,ft,et,em)=>({n,new:nw,d,o:{"Grocer with home ingredients":[gn,gt],"Community gathering":[cn,ct]},fest:{n:fn,ph:fph,c:fc,m:22,e:-10,t:ft},ev:[et,em]});
+const BG=[
+B("Filipino",1,"Nurse, caregiver or tradesperson. Tagalog at home.","Filipino grocery","Pancit, longganisa and Skyflakes. The cashier says 'kumusta'.","Sunday mass and kain","Mass, then a potluck bigger than the church. Job leads and babysitters.","Philippine Independence Day picnic",[2],10,"Lumpia, karaoke, and cousins you adopted.","A kababayan offered a room until you find a place.",9),
+B("Nigerian",1,"Fresh from Lagos or Abuja. The cold is personal.","African market","Egusi, garri and plantain. The jollof debate begins at the till.","Church or Naija meetup","Gospel, jollof, and strong opinions. Three job leads.","Naija party at a community hall",0,15,"Afrobeats, aso ebi, and one dance-floor miracle.","Your jollof was judged. You won narrowly.",8),
+B("Indian",1,"From Punjab, Gujarat, Kerala or beyond. Chai first.","South Asian grocer","Atta, dal and a samosa straight from the fryer.","Langar or temple supper","A free community meal for everyone, and three job leads.","Diwali or Vaisakhi night",0,10,"Lights, sweets and every uncle talking at once.","A stranger handed you chai after your bus broke down.",8),
+B("Ukrainian",1,"Arrived since the war. A big community here, home is under strain.","Ukrainian deli","Perogies, kovbasa and borshch beets. Familiar.","Church supper","Perogies, babushkas, and nine job leads.","Ukrainian cultural evening",0,12,"Vyshyvanka, song, and a quiet tear.","News from home. A long, hard evening.",-9),
+B("Syrian",1,"Arrived as a refugee or sponsored family. Arabic and patience.","Middle Eastern grocer","Za'atar, labneh and warm flatbread. The smell fixes something.","Mosque or community supper","A shared meal, kids everywhere, three leads.","Eid community night",0,10,"Sweets, family, and a long table.","A sponsor family brought winter boots for the kids.",9),
+B("Eritrean / Ethiopian",1,"Coffee ceremony in your blood, a winter ahead.","Habesha market","Injera, berbere and green coffee beans.","Coffee ceremony","Three rounds of buna, news, and job leads.","Meskel or Timkat celebration",0,10,"Singing, white garments, and a procession.","Your landlord wanted three more documents than the last tenant.",-8),
+B("Chinese",1,"Mandarin, Cantonese or Hokkien. Thin local references.","Chinese supermarket","Bok choy, rice and hot-pot base. The cashier says nihao.","Association dinner","Banquet, mahjong, and four job leads.","Lunar New Year at the Chinatown gate",[0],15,"Lion dance, dumplings, red envelopes.","Your name got anglicized on a form. You corrected it twice.",-5),
+B("Latin American",1,"Colombian, Mexican, Salvadoran or Venezuelan. Spanish at home.","Latin grocery","Arepa flour, tortillas and Tajín. Salsa at the till.","Spanish-language mass or potluck","Tamales, cumbia, job leads in three accents.","Latin dance night",0,12,"Dancing until the radiators sweat.","Your cousin laughed at your coat. Then lent you a better one.",-3),
+B("Caribbean",1,"Island-warm heart in a cold-wind city.","Caribbean store","Jerk seasoning, plantain, a patty at the door.","Domino night or church","Dominoes, reggae, and advice about winter.","Caribbean festival day",[2],12,"Steel pan, curry goat, and heat that finally feels familiar.","You wore four layers on day 1. A neighbour approved.",6),
+B("Another country",1,"Not listed? Play as a general newcomer.","International grocer","Spices from home and eight languages at the till.","Cultural association dinner","Food, music, three job leads.","Cultural night",0,10,"Everyone brought a dish and a story.","A stranger asked where you're 'really' from. You answered patiently.",-6),
+B("First Nations",0,"Treaty 1 territory, home to one of Canada's largest urban Indigenous populations.","Friendship Centre lunch","Bannock, soup and visiting. Aunties ask who your people are.","Powwow or sharing circle","Drums, community, and pride. Opportunities follow.","Manito Ahbee powwow",[1],10,"Regalia, drumming, and a long grand entry.","A landlord's friendly tone vanished after the viewing.",-9),
+B("Métis",0,"Red River Métis homeland. Michif, fiddle and a river you know.","Bannock stall","Bannock, pemmican pies, and fiddle on the radio.","Métis jigging night","Red River jig, fiddles, and a lot of cousins.","Festival du Voyageur (Métis stage)",[0],0,"Sashes, jigging, and snow forts.","Louis Riel Day. You wore your sash and stood tall.",9),
+B("Franco-Manitoban",0,"St. Boniface born. Bilingual by default.","Boulangerie in St. Boniface","Croissants, tourtière and a 'bonjour-hi'.","Parish supper or cabane","Sugar pie, fiddles, and French you can relax in.","Concert at the Centre culturel",0,20,"Chansons, cider, and everyone knows your aunt.","Your French was praised at a store. No one expected it.",5),
+B("Ukrainian-Canadian",0,"Third generation. Baba's perogies are the standard.","Baba's kitchen","Perogies, holubtsi and 'you're too thin'.","Parish perogy supper","Hundreds of perogies. Every relative is evaluated.","Ukrainian dance concert",0,15,"Boots, ribbons, and furious ankles.","Baba mailed you a jar of pickles and a five.",8),
+B("Mennonite",0,"Southern Manitoba roots, living in the city.","Farmers' market","Zwieback, vereniki and farmer sausage.","Fellowship supper","Hymns, zwieback, and a gentle family-tree quiz.","Heritage weekend",0,12,"Quilts, borscht and polite competition.","Someone knew your cousin. Of course they did.",5),
+B("Jewish",0,"North End roots, Shabbat in River Heights.","Kosher bakery","Challah, rugelach and a Winnipeg-style bagel.","Shabbat dinner","Candles, family, and endless advice.","Chanukah celebration",[0],10,"Latkes, dreidels and a fiddler somewhere.","A neighbour sent a card for Rosh Hashanah.",6),
+B("Filipino-Canadian",0,"Your parents arrived decades ago. You grew up on Sargent.","Filipino grocery","Pancit, lumpia and a tita's critical stare.","Community potluck","Karaoke, adobo, and cousins you've never met.","Philippine Independence Day party",[2],10,"Sinigang and a pageant of titas.","Your lola's nurse friends all know your name.",7),
+B("South Asian-Canadian",0,"Your parents came for work and stayed.","South Asian bakery","Samosas, jalebi, and a snack for the road.","Temple or hall supper","The auntie network: nothing is unseen, everything is help.","Diwali night",0,10,"Sparklers, sweets, and a new cousin.","An auntie set you up with 'a friend's cousin'.",-3),
+B("Just Winnipeg",0,"Any family, any story. A good coat.","Corner store","Coffee, a scratch ticket, and one tiny chat.","Neighbourhood potluck","Folding chairs, folding tables, good company.","Community BBQ",[2],5,"Hot dogs and your neighbour's playlist.","A neighbour shovelled your walk without being asked.",8)];
+const F=()=>FUN.concat(S.bg&&S.bg.fest?[S.bg.fest.ph===0?{...S.bg.fest,ph:undefined}:S.bg.fest]:[]);
+const ov=a=>S&&S.bg&&S.bg.o[a.n],nm=a=>ov(a)?ov(a)[0]:a.n,tx=a=>ov(a)?ov(a)[1]:a.t;
+const GOALS=[
+ {n:"Bank $1,000",f:s=>s.money>=1000},{n:"Hit 90 mood",f:s=>s.mood>=90},
+ {n:"Work 10 shifts",f:s=>s.shifts>=10},{n:"Enjoy 8 outings",f:s=>s.outs>=8},
+ {n:"Go to 3 community gatherings",f:s=>s.comm>=3},{n:"Earn $2,500 in total",f:s=>s.earned>=2500},
+ {n:"Reach day 15 with no tow truck",f:s=>s.day>=15&&s.tows==0,car:1},
+ {n:"Land a skilled job",f:s=>s.skilled>=1,imm:1},{n:"Take 3 language classes",f:s=>s.lang>=3,imm:1}];
+function pickGoals(){const pool=GOALS.map((g,i)=>i).filter(i=>(!GOALS[i].imm||S.imm)&&(!GOALS[i].car||S.car));
+ for(let i=pool.length-1;i>0;i--){const j=R(0,i);[pool[i],pool[j]]=[pool[j],pool[i]]}return pool.slice(0,3)}
+function chk(){S.goals.forEach(i=>{const g=GOALS[i];if(!S.done.includes(g.n)&&g.f(S)){S.done.push(g.n);S.money+=100;log("Goal complete: "+g.n+". +$100 and +300 score.","g");emit({t:"goal",g:g.n})}})}
+function sc(){return Math.max(0,Math.round((S.money+S.mood*10+(S.imm?Math.min(S.exp,40)*5+S.lang*40+(S.cred?150:0):0)+S.done.length*300+(S.gave||0)*40)*(S.hard?1.25:1)))}
+function badges(){const b=[];if(S.shifts>=15)b.push("Double-Double Veteran");if(S.outs>=10)b.push("Prairie Social Butterfly");
+ if(S.car&&S.tows==0)b.push("Plugged In");if(S.money>=2000)b.push("Rainy-Day Saver");if(S.mood>=80)b.push("Winnipeg Optimist");
+ if(S.done.length==3)b.push("Goal Getter");if(S.comm>=3)b.push("Community Pillar");if(S.over=="done"&&!b.length)b.push("Survivor");return b}
+const best0=k=>{try{return +localStorage.getItem(k||"wpglife-best")||0}catch(e){return 0}};
+function saveBest(v){const k=S.daily?"wpglife-d"+S.daily:"wpglife-best";let b=best0(k);if(v>b){b=v;try{localStorage.setItem(k,b)}catch(e){}}return b}
+const CH=[
+ {t:"A coworker offers you a cash-in-hand side gig tonight.",a:["Take it (+$120, −25 energy)",()=>{S.money+=120;S.energy-=25;S.earned+=120;log("Cash gig done. Tired, richer.","g")}],b:["Rest instead (+20 energy, +4 mood)",()=>{S.energy+=20;S.mood+=4;log("You rested. Smart.","g")}]},
+ {t:"Friends invite you to a big night out. Everyone's going.",a:["Go (−$40, +20 mood)",()=>{S.money-=40;S.mood+=20;S.outs++;log("Great night. Slight regret at the till.","g")}],b:["Stay in and save (−3 mood)",()=>{S.mood-=3;log("You stayed in. The couch was fine.")}]},
+ {t:"A neighbour is selling a proper winter parka.",a:["Buy it (−$60, +8 mood)",()=>{S.money-=60;S.mood+=8;log("Warmest you've felt in weeks.","g")}],b:["Pass (keep your $60)",()=>{log("You kept the $60. Bold, in this weather.")}]},
+ {t:"A stranger asks you to help push their stuck car.",a:["Help (−10 energy, +10 mood)",()=>{S.energy-=10;S.mood+=10;log("Winnipeg nice, delivered.","g")}],b:["Keep walking",()=>{log("You kept walking. It was −30.")}]}];
+function dec(k){const c=S.choice;S.choice=null;c[k][1]();S.energy=Math.max(0,Math.min(100,S.energy));S.mood=Math.max(0,Math.min(100,S.mood));render()}
+const NET={n:1,feed:[],b1:[],b2:[],gifts:[],names:{}};
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const nm2=id=>id==NET.me?"You":NET.names[id]||"A neighbour";
+const ui=()=>{clearTimeout(NET.t);NET.t=setTimeout(render,300)};
+async function who(ids){if(!NET.user)return;const need=[...new Set(ids)].filter(i=>i&&!NET.names[i]);if(!need.length)return;
+ try{const p=await NET.user.profiles(need);need.forEach(i=>NET.names[i]=(p[i]&&p[i].name)||"A neighbour");ui()}catch(e){}}
+function emit(d){if(NET.room&&NET.me)try{NET.room.emit("feed",{u:NET.me,...d})}catch(e){}}
+async function netInit(){
+ if(typeof claude=="undefined")return;
+ try{NET.user=await claude.use("user");NET.me=NET.user?await NET.user.id():null;NET.db=await claude.use("db");NET.room=await claude.use("room")}catch(e){}
+ if(NET.room)try{NET.room.on("feed",m=>{if(m.isMe)return;NET.feed.unshift(m.data);NET.feed=NET.feed.slice(0,4);who([m.data.u]);ui()});NET.room.onPeers(c=>{NET.n=c.peers.length;ui()})}catch(e){}
+ if(NET.db)try{const k=(()=>{const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()})();
+  NET.db.collection("scores").orderBy("score","desc").limit(5).onSnapshot(q=>{NET.b1=q.docs.map(d=>d.data());who(NET.b1.map(x=>x.u));ui()});
+  NET.db.collection("d"+k).orderBy("score","desc").limit(5).onSnapshot(q=>{NET.b2=q.docs.map(d=>d.data());who(NET.b2.map(x=>x.u));ui()});
+  NET.db.collection("kindness").where("open","==",true).limit(10).onSnapshot(q=>{NET.gifts=q.docs.map(d=>({id:d.id,...d.data()}))})}catch(e){}
+ if(typeof wNet=="function")wNet();
+}
+async function put(c,row){const r=NET.db.collection(c).doc(NET.me),o=await r.get();if(!o.exists||o.data().score<row.score)await r.set(row)}
+async function post(sco,gr){if(!NET.db||!NET.me||S.posted)return;S.posted=1;
+ const row={u:NET.me,score:sco,bg:S.bg.n,grade:gr,day:S.day,at:Date.now()};
+ try{if(S.daily)await put("d"+S.daily,row);await put("scores",row)}catch(e){}
+ emit({t:"end",g:gr,s:sco,bg:S.bg.n})}
+function give(){if(NET.db&&NET.me)NET.db.collection("kindness").add({u:NET.me,amt:30,open:true,at:Date.now()}).catch(()=>{});emit({t:"gift"})}
+async function claim(g){try{const r=NET.db.doc("kindness/"+g.id),a=await r.acquire({holder:NET.me,ttlMs:6e5});
+ if(a.acquired&&S&&!S.over){await r.update({open:false});S.money+=g.amt;S.mood=Math.min(100,S.mood+8);S.got=(S.got||0)+1;await who([g.u]);log("A stranger left $"+g.amt+" under your wiper. Thanks, "+nm2(g.u)+".","g");render()}}catch(e){}}
+function feedTxt(f){const n=nm2(f.u);return f.t=="day"?n+" made it through day "+f.d+" ("+f.bg+")":f.t=="goal"?n+" completed: "+f.g:f.t=="gift"?n+" paid it forward":n+" finished with grade "+f.g+" ("+f.s+")"}
+function town(){if(!NET.db&&!NET.room)return"";
+ const row=(x,i)=>`<p style="margin:3px 0">${i+1}. <b>${esc(nm2(x.u))}</b> · ${esc(x.grade)} ${+x.score} <small style="display:inline">${esc(x.bg)}</small></p>`;
+ return`<div class="card"><h2>Neighbours${NET.room?" · "+NET.n+" online":""}</h2>${NET.b2.length?"<small>Today's Daily Run</small>"+NET.b2.map(row).join(""):""}${NET.b1.length?"<small>All-time best</small>"+NET.b1.map(row).join(""):"<small>No scores yet. Finish a run to be first on the board.</small>"}${NET.feed.length?"<small>Around town</small>"+NET.feed.map(f=>`<p style="margin:3px 0">${esc(feedTxt(f))}</p>`).join(""):""}</div>`}
+function toast(t){const e=document.createElement("div");e.className="t";e.textContent=t;$("#toast").replaceChildren(e);setTimeout(()=>e.remove(),1800)}
+function share(t){try{navigator.clipboard.writeText(t).then(()=>toast("Result copied"))}catch(e){toast("Copy not available")}}
+function stamp(){try{const k="wpglife-pass",l=JSON.parse(localStorage.getItem(k)||"[]");if(S&&S.over=="done"&&!l.includes(S.bg.n)){l.push(S.bg.n);localStorage.setItem(k,JSON.stringify(l))}return l.length}catch(e){return 0}}
+function daily(){const d=new Date(),k=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();rng=mulb(k);PP=PROFILES[R(0,2)];const ids=BG.map((b,i)=>i).filter(i=>BG[i].new==!!PP.imm);start(ids[R(0,ids.length-1)],k)}
+function resume(){const r=ld("wpg-run",null);if(!r)return;S=r;S.choice=S.ci>=0?CH[S.ci]:null;S.prev=null;rng=Math.random;PP=null;render();scrollTo(0,0)}
+function rl(){const t=[];if(S.tows>0)t.push("A no-start in the cold is avoidable: plug in your block heater on nights colder than about −20°C.");
+ if(S.over=="evicted")t.push("Rent is the big risk. A real Winnipeg one-bedroom averages about $1,353, so keep rent near 30–40% of income.");
+ if(S.imm)t.push("Credentials, language and local references open doors. Settlement agencies offer free help with all three.");
+ if(S.mood<40)t.push("Low mood in a long winter is real. Plan daylight, movement and people, and call or text 988 if it feels heavy.");
+ if(!t.length)t.push("Your Playbook has the real checklist and budget optimizer for what you just practised.");return t.slice(0,3).map(x=>`<div class="tip">${x}</div>`).join("")}
+function copyList(){const l=vis().filter(x=>!PB.c[x[0]]).map(x=>"[ ] "+x[3]).join("\n");try{navigator.clipboard.writeText("My Winnipeg to-do list:\n"+l).then(()=>toast("To-do list copied"))}catch(e){toast("Copy not available")}}
+function choose(i){PP=PROFILES[i];render();scrollTo(0,0)}
+const PROFILES=[
+ {id:"rh",n:"River Heights comfort",d:"$2,500 saved, a car, and a parent who knows a guy at the Hydro.",money:2500,energy:100,mood:70,car:true},
+ {id:"nc",imm:true,n:"Newcomer hustle",d:"$250, a bus pass, and a lease you signed before seeing the January forecast.",money:250,energy:100,mood:50,car:false},
+ {id:"it",imm:true,n:"Internationally trained",d:"Ten years as a nurse or engineer back home. $900, a work permit, no Canadian experience, and a first winter ahead.",money:900,energy:100,mood:55,car:false}];
+const WORK=[
+ {n:"Shift at Tim Hortons",p:95,e:25,m:-4,t:"Double-double after double-double. Tips were thin."},
+ {n:"Concessions at a Jets game",p:120,e:30,m:4,t:"You watched two periods through a hot dog window."},
+ {n:"Vendor at The Forks Market",p:110,e:25,m:2,t:"Tourists asked where the 'actual' mountains were."},
+ {n:"Drive a Winnipeg Transit route",p:145,e:32,m:-6,t:"Route 11 on a Friday. You are a calm person now."},
+ {n:"Pothole repair crew",p:150,e:38,m:-5,t:"Job security: unlimited."},
+ {n:"Shovel driveways in Transcona",p:100,e:35,m:-3,t:"Four driveways before noon. Your back has opinions.",ph:[0]},
+ {n:"Sandbag crew on the Red River",p:130,e:40,m:6,t:"A chain of neighbours, a thermos, a rising river.",ph:[1]},
+ {n:"Busk at the Fringe Festival",p:70,e:15,m:10,t:"Exchange District, ukulele, a surprising number of toonies.",ph:[2]},
+ {n:"Warehouse night shift (agency)",p:105,e:34,m:-6,imm:1,t:"No 'Canadian experience' yet, so the agency sends you here. Your degree stays in a drawer."},
+ {n:"Skilled job in your field",p:230,e:30,m:10,imm:1,need:1,x:"Needs credential assessment + 6 shifts of Canadian experience",t:"Finally. The interview asked about your 'local references'. You had them now."}];
+const FUN=[
+ {n:"Salisbury House nips",c:14,e:8,m:10,t:"Nips with gravy. Immediately better."},
+ {n:"Jets game (upper bowl)",c:120,e:-12,m:28,t:"Whiteout. You lost your voice and don't regret it."},
+ {n:"Skate the river trail",c:0,e:-15,m:18,t:"Red River Mutual Trail: a long ribbon of ice. Beautiful.",out:true},
+ {n:"Walk Assiniboine Park",c:0,e:-8,m:14,t:"You saw a duck and felt hopeful.",out:true},
+ {n:"Slurpee at the 7-Eleven",c:3,e:0,m:6,t:"Brain freeze, then peace."},
+ {n:"Try to cross Portage & Main",c:0,e:-4,m:3,t:"Closed to pedestrians since 1979. Underground concourse it is."},
+ {n:"Festival du Voyageur",c:20,e:-10,m:24,t:"Poutine, fiddles, snow sculptures and a stranger's toque. St. Boniface at its best.",ph:[0]},
+ {n:"Folklorama pavilion",c:25,e:-10,m:22,t:"Three pavilions, four dinners, zero regrets.",ph:[2]},
+ {n:"Bombers game at Princess Auto Stadium",c:75,e:-12,m:24,t:"Blue and gold, a beer-line, a last-minute win.",ph:[2]},
+ {n:"Skate trail warming hut",c:6,e:6,m:12,t:"Hot chocolate in a hut shaped like a ship. Hands thaw.",ph:[0]},
+ {n:"Bug spray",c:12,e:0,m:0,s:"spray",x:"Blocks mosquito bites today",t:"Deep Woods Off. You smell like a campfire.",ph:[2]},
+ {n:"Pay it forward",c:20,e:-4,m:12,s:"gift",x:"A real neighbour may find $30",t:"You left an envelope under a stranger's wiper. Good karma, +40 score."},
+ {n:"Settlement agency language class",c:0,e:-10,m:5,s:"class",imm:1,x:"Builds language level",t:"Free English class. Everyone has a story; you swap lunches."},
+ {n:"Credential assessment (WES)",c:250,e:0,m:4,s:"wes",imm:1,x:"One-time. Unlocks skilled jobs",t:"Paid, submitted, waiting. Your ten years finally have a stamp."},
+ {n:"Call family back home",c:0,e:-5,m:15,imm:1,t:"Time zones are brutal. You smile for forty minutes and cry for five."},
+ {n:"Community gathering",c:5,e:-8,m:16,s:"net",t:"Church, mosque, temple or cultural association: jollof, jokes, and three job leads."},
+ {n:"Grocer with home ingredients",c:35,e:5,m:14,t:"Your mother's spices, found in the West End. Home on a plate."},
+ {n:"Send money home",c:100,e:0,m:12,imm:1,x:"Family back home",t:"Remittance sent. Your cousin's school fees are covered. Your wallet feels it."}];
+WORK.forEach(a=>a.p=Math.round(a.p*(a.need?.62:.5)));
+const RENT=520;
+function wx(){const d=S.day,ph=d<=10?0:d<=20?1:2;
+ const t=ph==0?R(-38,-17):ph==1?R(-3,9):R(24,33);
+ const f=ph==0?t-R(7,12):t;return{t,f,ph,label:ph==0?"Deep freeze":ph==1?"Spring thaw & flood watch":"Mosquito season",ext:f<-40}}
+function log(t,c=""){S.log.unshift([t,c]);S.log=S.log.slice(0,8)}
+function start(b,dl){const p=PP;rng=dl?mulb(dl):Math.random;S={...p,daily:dl||0,hard:dl?0:HARD?1:0,bg:BG[b],exp:0,lang:0,cred:false,day:1,slots:3,plugged:false,log:[],over:false,hist:[],shifts:0,outs:0,comm:0,earned:0,skilled:0,tows:0,done:[]};S.goals=pickGoals();S.w=wx();
+ log("Welcome to Winnipeg ("+S.bg.n+"). It is "+S.w.t+"°C. You are fine. Probably.","e");render();scrollTo(0,0)}
+function use(kind,i){if(S.slots<1)return;const a=(kind=="w"?WORK:F())[i];
+ let cost=a.c||0,d=kind=="w"?-a.e:a.e,pay=Math.round((a.p||0)*(S.mood>=70?1.1:S.mood<25?.8:1)*(S.hard?.8:1));
+ if(a.out&&S.w.ext){d-=12;log("Windchill said no mercy. Extra tired.","b")}
+ if(S.energy<(kind=="w"?a.e:0)||S.money<cost)return;
+ S.money+=pay-cost;S.energy=Math.max(0,Math.min(100,S.energy+d));S.mood=Math.max(0,Math.min(100,S.mood+(a.m||0)));
+ if(a.s=="spray")S.spray=true;if(a.s=="class")S.lang++;if(a.s=="gift"){S.gave=(S.gave||0)+1;give()}if(a.s=="wes")S.cred=true;if(a.s=="net")S.exp++;if(kind=="w"){S.exp++;S.shifts++;S.earned+=pay;if(a.need)S.skilled++}else S.outs++;if(a.s=="net")S.comm++;S.slots--;log(tx(a)+(pay?" +$"+pay:cost?" −$"+cost:""),pay?"g":"");render()}
+function sleep(){if(S.slots<1)return;S.energy=Math.min(100,S.energy+40);S.slots--;log("You napped. Radiators ticked. +40 energy.","g");render()}
+function plug(){if(S.plugged||!S.car)return;S.plugged=true;S.energy-=3;log("Block heater plugged in. Future you says thanks.","g");render()}
+const EV=[[
+ ()=>{if(S.car){S.money-=60;log("Snow-route parking ticket. −$60.","b")}else{S.mood+=6;log("A stranger's dog sat on your lap on the bus. Weirdly lovely.","g")}},
+ ()=>{S.mood+=9;log("Aurora forecast. You stood in a field and saw green.","g")},
+ ()=>{S.money-=40;log("Windshield fluid, a bag of salt, new mitts. −$40.","b")}],[
+ ()=>{S.mood-=4;log("Red River crest on the way. The news says 'overland flooding' with calm authority.","b")},
+ ()=>{S.mood+=6;log("First plus-degree day. People in shorts at 4°C.","g")},
+ ()=>{if(S.car){S.money-=35;log("Slush and cones. Car wash: −$35.","b")}else{S.energy-=6;log("Slush soaked your shoes. You are now a puddle expert.","b")}}],[
+ ()=>{S.mood+=10;log("Sunset at The Forks at 10 p.m. The whole city is out.","g")},
+ ()=>{S.energy-=10;log("Tornado watch, thunderstorm, power out for an hour.","b")},
+ ()=>{S.money+=30;log("Sold a lawn chair at a garage sale. +$30.","g")}]];
+const EVI=[
+ ()=>{S.mood-=8;log("A landlord ignored your application: no Canadian credit history, no local references.","b")},
+ ()=>{S.mood-=6;log("Your name was mispronounced for the fifth time this week. You smiled anyway.","b")},
+ ()=>{S.mood+=9;log("A neighbour left food on your doorstep. Winnipeg community is real.","g")},
+ ()=>{S.money-=40;S.mood-=3;log("Paperwork fee for a permit update. −$40.","b")},
+ ()=>{S.exp++;log("A coworker offered to be your reference. +1 Canadian experience.","g")}];
+function nb(){for(let d=S.day;d<=30;d++){let b=0,l=[];if(d%10==0){b+=RENT;l.push("Rent")}if(d==8){b+=85;l.push("Hydro")}if(d==15){b+=S.car?130:80;l.push(S.car?"MPI":"Transit pass")}if(d==25){b+=55;l.push("Hydro")}if(S.imm&&d==18){b+=155;l.push("Permit")}
+ if(b){const need=b+(d-S.day+1)*20,warn=S.money<need;return`<small style="color:${warn?"var(--bad)":"var(--mut)"};font-weight:600">${warn?"Warning: ":"Next bill: "}${l.join(" + ")} $${b} on day ${d}${warn?" (you need about $"+need+")":""}</small>`}}return""}
+function risk(){return S.w.t<-30?.7:S.w.t<-25?.45:.2}
+function endDay(){
+ const day=S.day;S.money-=20;
+ {const g=(NET.gifts||[]).find(x=>x.u!==NET.me&&!(S.taken||{})[x.id]);if(g&&(S.got||0)<2&&Math.random()<.6){(S.taken=S.taken||{})[g.id]=1;claim(g)}}
+ if(S.w.ph==0&&S.car&&!S.plugged&&rng()<risk()){S.money-=80;S.mood-=8;S.tows++;log("Car wouldn't start. Tow truck: −$80.","b")}
+ else if(S.w.ph==1&&rng()<.4){const c=S.car?150:0;S.money-=c;S.mood-=6;log(S.car?"Pothole ate a tire. −$150.":"Splashed by a passing truck at a bus stop.","b")}
+ else if(S.w.ph==2&&rng()<.45&&!S.spray){S.mood-=7;log("Mosquitoes. You wear them like a coat.","b")}
+ else{const ev=[
+  ()=>{S.money+=20;log("Found a $20 in a winter jacket. +$20.","g")},
+  ()=>{S.mood+=10;log("Bombers won. The whole street is honking. +mood.","g")},
+  ()=>{S.mood+=8;log("A stranger helped push your car. Winnipeg nice is real.","g")},
+  ()=>{S.energy-=(S.car?6:18);log(S.car?"Detour around construction. Cones as far as the eye can see.":"Your bus was 25 minutes late. You waited, in character.","b")},
+  ()=>{log("Quiet day. The sky is enormous.")}].concat(EV[S.w.ph],S.imm?EVI:[],[()=>{S.mood+=S.bg.ev[1];log(S.bg.ev[0],S.bg.ev[1]>0?"g":"b")}]);pick(ev)()}
+ if(S.day%10==0){const r=RENT;S.money-=r;log("Rent due: −$"+r+".","b")}
+ if(S.day==8){S.money-=85;log("Manitoba Hydro bill: −$85. Rates are low, the furnace never stops.","b")}
+ if(S.day==15){const c=S.car?130:80;S.money-=c;log(S.car?"MPI insurance payment: −$"+c+".":"Monthly Transit pass: −$"+c+".","b")}
+ if(S.day==25){S.money-=55;log("Hydro bill, summer edition: −$55.","b")}
+ if(S.imm&&S.day==18){S.money-=155;log("Work permit renewal fee: −$155. Processing times are long.","b")}
+ if(S.imm)S.mood-=2;if(S.hard)S.mood-=1;
+ S.energy=Math.max(0,Math.min(100,S.energy+25));S.mood=Math.max(0,Math.min(100,S.mood));
+if(S.mood<=0){S.over="burnout";render();return}
+ if(S.money<0){S.over="evicted";render();return}
+ if(S.day>=30){S.over="done";render();return}
+ S.day++;S.slots=3;S.plugged=false;S.spray=false;S.w=wx();if([6,16,26].includes(S.day))S.choice=pick(CH);if(S.day==11||S.day==21)emit({t:"day",d:S.day-1,bg:S.bg.n});render()}
+function render(){
+ if(!S&&PP){$("#app").innerHTML=`<span class="sign">YOUR ROOTS</span><h1>Where are you from?</h1><p>${PP.imm?"Choose the country or community you came from.":"Choose the community that raised you."}</p><div class="grid">${BG.map((b,i)=>b.new==!!PP.imm?`<button onclick="start(${i})">${b.n}<small>${b.d}</small></button>`:"").join("")}</div><p><button onclick="PP=null;render()">Back</button></p>`;return}
+ if(!S){$("#app").innerHTML=`<span class="sign">30 DAYS · WPG</span><h1>Winnipeg Life</h1><small>Best score: ${best0()} · Passport: ${(()=>{try{return JSON.parse(localStorage.getItem("wpglife-pass")||"[]").length}catch(e){return 0}})()} of ${BG.length} communities</small><p><b>Your goal:</b> survive 30 days with cash, mood and three personal goals met. Score = cash + mood + goals + badges.</p>
+ <p>Thirty days in the Gateway to the West. Work, eat nips, dodge potholes. Rent is due on days 10, 20 and 30, with Hydro and MPI or a Transit pass in between. January turns into flood season, then mosquito season. Newcomer starts add credentials, language classes, work permits and homesickness. Pick your start.</p>
+ ${(()=>{const r=ld("wpg-run",null);return r&&r.bg&&!r.over?`<button class="go" onclick="resume()">Continue your run<small style="color:#fff">${r.bg.n}, day ${r.day} of 30</small></button><br>`:""})()}<button class="go" onclick="daily()">Play today's Daily Run<small style="color:#fff">Same start and goals for everyone today. Compare scores.</small></button>
+ <button onclick="HARD=!HARD;render()" aria-pressed="${HARD}">Hard mode: ${HARD?"ON":"off"}<small>Pay −20%, mood drains faster, score ×1.25. Not used in the Daily Run.</small></button>
+ ${town()}${PROFILES.map((p,i)=>`<div class="card"><h2>${p.n}</h2><p>${p.d}</p><button class="go" onclick="choose(${i})">Start as this</button></div>`).join("")}`;return}
+ if(S.over){try{localStorage.removeItem("wpg-run")}catch(e){}const sco=sc(),shr=(S.sh="Winnipeg Life"+(S.daily?" Daily "+S.daily:"")+(S.hard?" HARD":"")+" · "+S.bg.n+" · "+(S.over=="done"?"Survived":"Out on day "+S.day)+" · Score "+sco+" · "+S.done.length+"/3 goals"),best=saveBest(sco),st=stamp(),gr=sco>9000?"S":sco>7000?"A":sco>5000?"B":sco>3000?"C":"D";
+  if(S.over=="done")post(sco,gr);$("#app").innerHTML=`<span class="sign">${S.over=="done"?"DAY 30":S.over=="burnout"?"BURNOUT":"EVICTED"}</span><h1>${S.over=="done"?"You survived a Winnipeg month":S.over=="burnout"?"You ran out of steam":"You ran out of money"}</h1>
+  <div class="card"><p>Final cash <b>$${S.money}</b>, mood <b>${S.mood}</b>.</p>${S.imm?`<p>Canadian experience: <b>${S.exp}</b> shifts · Language classes: <b>${S.lang}</b> · Credentials ${S.cred?"assessed":"not yet assessed"}. Credentials, language and local references are what open doors.</p>`:""}<p class="num" style="font-size:40px;font-weight:800">Grade ${gr} · Score ${sco}<small>Best on this device: ${best}</small></p>
+  <p>Goals: <b>${S.done.length} of 3</b>.${S.over=="done"?" Passport: <b>"+st+" of "+BG.length+"</b> communities completed.":""}</p><p>${badges().map(b=>"🏅 "+b).join(" · ")||"No badges. Try for Plugged In next time."}</p><p>${S.over=="done"?(sco>3000?"Locals would call you a lifer.":"You made it. Next time, plug in the car."):S.over=="burnout"?"Mood hit zero. Rest, treat yourself, call someone.":"Rent comes due on days 10, 20 and 30. Save ahead."}</p></div>
+  <div class="card"><h2>Take it into real life</h2>${rl()}<button onclick="tab('p')">Open my Playbook</button></div>${town()}<button class="go" onclick="share(S.sh)">Copy my result</button><p><button onclick="S=null;PP=null;render()">Play again</button></p>`;return}
+ chk();
+ const sn=[S.money,S.energy,S.mood];if(S.prev){const d=sn.map((v,i)=>v-S.prev[i]),f=(v,u)=>v?(v>0?"+":"−")+(u=="$"?"$":"")+Math.abs(v)+(u=="$"?"":" "+u):"",t=[f(d[0],"$"),f(d[1],"energy"),f(d[2],"mood")].filter(Boolean).join("   ");if(t)toast(t)}S.prev=sn;try{if(!S.over){S.ci=S.choice?CH.indexOf(S.choice):-1;sv("wpg-run",{...S,choice:null})}}catch(e){}
+ if(S.choice){const c=S.choice;$("#app").innerHTML=`<span class="sign">DAY ${S.day} · DECISION</span><h1 style="font-size:32px;margin:8px 0 12px">${c.t}</h1><div class="grid"><button class="go" onclick="dec('a')">${c.a[0]}</button><button class="go" style="background:var(--ink);border-color:var(--ink);color:var(--bg)" onclick="dec('b')">${c.b[0]}</button></div>`;return}
+ const w=S.w;
+ $("#app").innerHTML=`
+ <div class="wx"><div><span class="sign">DAY ${S.day} / 30</span> <span class="sign" style="background:var(--ink);color:var(--bg)">SCORE ${sc()}</span><h2 style="font-size:28px;margin-top:4px">${w.label}</h2></div>
+ <div class="num" style="font-size:44px;font-weight:800">${w.t}°C<small style="text-align:right;font:600 14px Barlow,sans-serif">${w.ph==0?"feels like "+w.f:""}</small></div></div>
+ ${w.ext?'<small>Windchill warning. Outdoor activities cost extra energy.</small>':''}
+ <div class="card stats">
+  <div class="stat"><div class="num">$${S.money}</div><small>cash</small></div>
+  <div class="stat"><div class="num">${S.energy}</div><small>energy</small><div class="bar"><i style="width:${S.energy}%"></i></div></div>
+  <div class="stat"><div class="num">${S.mood}</div><small>mood</small><div class="bar"><i style="width:${S.mood}%"></i></div></div></div>
+ ${S.imm?`<small>Canadian experience: ${S.exp} shifts · Language classes: ${S.lang} · Credentials: ${S.cred?"assessed":"not assessed"}</small>`:""}<small>Slots left today: ${S.slots} of 3 · Food $20/day · ${S.mood>=70?"Good mood: +10% pay":S.mood<25?"Low mood: −20% pay":"Mood 70+ pays +10%"}</small>
+ ${nb()}
+ <div class="card"><h2>Goals</h2>${S.goals.map(i=>`<p style="margin:4px 0">${S.done.includes(GOALS[i].n)?"✅":"⬜"} ${GOALS[i].n}</p>`).join("")}<small>Each goal: +$100 and +300 score</small></div>
+ <div class="card"><h2>Work</h2><div class="grid" style="margin-top:8px">
+ ${WORK.map((a,i)=>(a.ph&&!a.ph.includes(w.ph))||(a.imm&&!S.imm)?"":`<button onclick="use('w',${i})" ${S.slots<1||S.energy<a.e||(a.need&&!(S.cred&&S.exp>=6))?"disabled":""}>${nm(a)}<small>+$${a.p} · −${a.e} energy${a.x?" · "+a.x:""}</small></button>`).join("")}</div></div>
+ <div class="card"><h2>Life</h2><div class="grid" style="margin-top:8px">
+ ${F().map((a,i)=>(a.ph&&!a.ph.includes(w.ph))||(a.imm&&!S.imm)?"":`<button onclick="use('f',${i})" ${S.slots<1||S.money<a.c||(a.s=="wes"&&S.cred)?"disabled":""}>${nm(a)}<small>${a.c?"−$"+a.c+" · ":""}${a.m>0?"+"+a.m+" mood":""}${a.e?(a.e>0?" · +":" · ")+a.e+" energy":""}${a.x||""}</small></button>`).join("")}
+ <button onclick="sleep()" ${S.slots<1?"disabled":""}>Nap under a blanket<small>+40 energy</small></button>
+ ${S.car?`<button onclick="plug()" ${S.plugged?"disabled":""}>Plug in the car<small>Free · ${S.w.ph==0?Math.round(risk()*100)+"% no-start risk tonight if unplugged":"Only needed in deep freeze"}</small></button>`:""}
+ </div></div>
+ <button class="go" onclick="endDay()">End day ${S.day}</button>
+ <div class="card log"><h2>Log</h2>${S.log.map(l=>`<p class="${l[1]}">${l[0]}</p>`).join("")}</div>${town()}`}
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const PB={p:ld("wpg-prof",{rent:1}),c:ld("wpg-done",{}),b:ld("wpg-bud",{inc:3000,nb:1353,rent:1353,tr:"pass",car:450,food:450,ph:55,net:70,ut:120,ins:25,oth:150})};
+const PH=["First week","First month","First 3 months","Before November","Every year","Every winter","Spring","Summer"];
+const IT=[
+["sin",["new"],0,"Apply for your SIN","Needed to work and to file taxes. Apply with Service Canada using your immigration documents."],
+["hc",["new"],0,"Register for Manitoba Health","Permanent residents can apply from their arrival date. Work permit holders (permit of 12+ months) can apply from the permit issue date. People moving from another province usually start on the first day of the third month, so keep private cover for any gap."],
+["stuhc",["stu"],0,"Arrange health insurance for your study permit","Study permit holders are generally not covered by Manitoba Health. Confirm your school's plan and carry proof."],
+["bank",["new"],0,"Open a bank account and start a credit history","A chequing account plus a secured or newcomer credit card builds the Canadian credit history landlords ask for."],
+["nums",["*"],0,"Save 911, 311 and 211","911 for emergencies, 311 for City of Winnipeg services, 211 for community and social services across Manitoba."],
+["peggo",["*"],0,"Get a Peggo card","Pay Winnipeg Transit with Peggo e-cash or an e-pass. Plan trips with Navigo on winnipegtransit.com."],
+["lease",["rent"],1,"Check your lease and deposit","A security deposit can be at most half of one month's rent. Get the lease in writing, do a move-in condition check with photos, and buy tenant insurance."],
+["rtb",["rent"],1,"Know the rent-increase rules","The 2026 guideline is 1.8%. Landlords must give 3 months' written notice and can raise rent once per 12 months. Units renting at $1,670+ a month or built after March 2005 are exempt. Residential Tenancies Branch: 204-945-2476."],
+["hydro",["*"],1,"Set up Manitoba Hydro and smooth winter bills","Ask about an equal-payment plan and Efficiency Manitoba rebates so January heating bills don't hit all at once."],
+["pass",["*"],1,"Pick the cheapest way to ride","A $119.35 monthly e-pass beats $3.45 cash fares once you ride about 35 times a month. Post-secondary students: $95.50 monthly or $324.65 a semester. Low-income WINNpass: $59.70."],
+["wage",["*"],1,"Know your pay rights","Manitoba's minimum wage is $16.40 from October 1, 2026. Standard hours are 8 a day and 40 a week; overtime applies beyond that."],
+["kids",["kid"],1,"Enrol children in school and apply for child care early","Register with your neighbourhood school division. Child-care waitlists are long, so apply now. Apply for the Canada Child Benefit through the CRA."],
+["lib",["*"],1,"Get a free library card","Winnipeg Public Library offers free books, internet, programs and newcomer events."],
+["lic",["car"],2,"Switch your licence and plates within 3 months","Get your Manitoba licence before buying Autopac, or you can lose premium discounts. Licences from about 41 jurisdictions can be exchanged without tests; others need knowledge and road tests. Vehicles need a passed inspection certificate."],
+["work",["new"],2,"Get credentials assessed and use employment services","Settlement agencies (such as Manitoba Start, Immigrant Centre and NEEDS) help with Canadian resumes, job search and credential recognition. Free language classes and a local reference speed up skilled jobs."],
+["doc",["*"],2,"Find a family doctor and understand Pharmacare","Register through Manitoba's family doctor finder and ask your pharmacist about the Pharmacare deductible."],
+["comm",["*"],2,"Join a community","Cultural, faith and neighbourhood groups lead to jobs, references and support. Volunteering counts as Canadian experience."],
+["coat",["*"],3,"Dress for −30","Parka, insulated boots, mitts, toque and layers. Windchill matters more than the temperature number."],
+["wcar",["car"],3,"Winter-proof the car","Block heater and cord, winter tires, a kit with blanket, boots, booster cables and a charged phone. As a rule of thumb, plug in on nights colder than about −20°C."],
+["tax",["*"],4,"File your tax return by April 30","Filing unlocks the GST/HST credit, child benefits and other credits, even on a low income. Volunteer tax clinics help low-income households for free."],
+["mood",["*"],5,"Plan for winter mood","Short days drag mood down. Schedule daylight, exercise and social plans. If it feels heavy, see a doctor, and call or text 988 any time in a crisis."],
+["spr",["*"],6,"Pothole and flood season","Report potholes to 311 and check the City's claim process quickly if your car is damaged. Watch flood forecasts if you live near the Red or Assiniboine rivers."],
+["sum",["*"],7,"Mosquitoes and festivals","Use repellent at dusk. Enjoy Folklorama, the Fringe and The Forks, which are cheap or free."]];
+const vis=()=>IT.filter(x=>x[1].includes("*")||x[1].some(f=>PB.p[f]));
+const NBH=[["Citywide average",1353],["St. Boniface",1283],["Downtown",1357],["West Winnipeg",1362],["East Winnipeg",1376],["South Winnipeg",1403]];
+const $$=n=>"$"+Math.round(n).toLocaleString();
+function tab(t){scrollTo(0,0);for(const k of["w","p","g"]){$({w:"#wd",p:"#pb",g:"#app"}[k]).classList.toggle("hide",t!=k);$("#t-"+k).classList.toggle("on",t==k)}if(t=="p")pbRender();WD.on=t=="w";if(WD.on)wStart()}
+function flag(k){PB.p[k]=!PB.p[k];sv("wpg-prof",PB.p);pbRender()}
+function chk2(id){PB.c[id]=!PB.c[id];sv("wpg-done",PB.c);pbRender()}
+function setb(k,v){PB.b[k]=k=="tr"?v:+v;if(k=="nb"){PB.b.rent=+v}sv("wpg-bud",PB.b);if(k=="nb"||k=="tr")pbRender();else $("#bres").innerHTML=bres()}
+function bres(){const b=PB.b,tr=b.tr=="pass"?119.35:b.tr=="stu"?95.5:b.tr=="car"?+b.car:b.tr=="cash"?172.5:0,
+ tot=+b.rent+tr+b.food+b.ph+b.net+b.ut+b.ins+b.oth,left=b.inc-tot,sh=b.inc?b.rent/b.inc:0,t=[];
+ if(sh>.4)t.push("Rent is "+Math.round(sh*100)+"% of your income. Aim for 30–40%. A roommate"+(b.rent>1283?" or St. Boniface (avg $1,283) could free up to "+$$(b.rent-1283)+" a month.":" could help."));
+ if(b.tr=="car")t.push("Going bus-only with a pass would save about "+$$(b.car-119.35)+" a month, if your commute allows.");
+ if(b.tr=="cash")t.push("Riding about 50 times a month on cash costs $172.50. A monthly pass ($119.35) saves $53.");
+ if(b.tr=="pass")t.push("A student? The post-secondary pass is $95.50 a month and saves $23.85.");
+ t.push("Full-time at minimum wage ($16.40 × 40 h) is about $2,843 gross a month.");
+ t.push(left<0?"You are short "+$$(-left)+" a month. Look at rent, transport and the 'other' line first.":"You keep "+$$(left)+" a month. A 3-month emergency fund ("+$$(3*tot)+") takes about "+Math.ceil(3*tot/Math.max(left,1))+" months.");
+ return"<p><b>Monthly spending "+$$(tot)+"</b> · left over <b style='color:var(--"+(left<0?"bad":"good")+")'>"+$$(left)+"</b></p>"+t.map(x=>"<div class='tip'>"+x+"</div>").join("")}
+function pbRender(){const v=vis(),d=v.filter(x=>PB.c[x[0]]).length,nx=v.find(x=>!PB.c[x[0]]),b=PB.b,
+ fl=[["new","New to Canada"],["stu","International student"],["car","I have a car"],["kid","I have kids"],["rent","I rent"]],
+ fld=(k,l)=>`<div><label>${l}</label><input type="number" min="0" value="${b[k]}" onchange="setb('${k}',this.value)"></div>`;
+ $("#pb").innerHTML=`<span class="sign">WINNIPEG · CHECKED OCT 2026</span><h1>Live well in Winnipeg</h1>
+ <p>Tell us about you, then work through what you need and spend smart. Your checks and numbers stay on this device.</p>
+ <div>${fl.map(f=>`<button class="chip ${PB.p[f[0]]?"on":""}" onclick="flag('${f[0]}')">${f[1]}</button>`).join("")}</div>
+ <div class="card"><h2>Next best step</h2>${nx?`<p><b>${nx[3]}</b></p><small>${nx[4]}</small>`:"<p>Everything on your list is done. Nice work.</p>"}<div class="pg" style="margin-top:10px"><i style="width:${v.length?d/v.length*100:0}%"></i></div><small>${d} of ${v.length} done</small></div>
+ <div class="card"><h2>Your checklist</h2><p><button onclick="copyList()">Copy my to-do list</button></p>${PH.map((ph,i)=>{const l=v.filter(x=>x[2]==i);return l.length?`<h2 style="font-size:20px;margin-top:12px">${ph}</h2>`+l.map(x=>`<div class="it ${PB.c[x[0]]?"dn":""}"><input type="checkbox" aria-label="${x[3]}" ${PB.c[x[0]]?"checked":""} onchange="chk2('${x[0]}')"><div><b>${x[3]}</b><small>${x[4]}</small></div></div>`).join(""):""}).join("")}</div>
+ <div class="card"><h2>Monthly budget optimizer</h2><small>Rent averages are July 2026 asking rents for an unfurnished one-bedroom. Other defaults are estimates you can edit.</small>
+ <div class="grid" style="margin-top:8px"><div><label>Neighbourhood (average 1-bed rent)</label><select onchange="setb('nb',this.value)">${NBH.map(n=>`<option value="${n[1]}" ${b.nb==n[1]?"selected":""}>${n[0]} · ${$$(n[1])}</option>`).join("")}</select></div>
+ <div><label>How you get around</label><select onchange="setb('tr',this.value)">${[["pass","Monthly pass $119.35"],["stu","Student pass $95.50"],["cash","Cash fares, 50 rides"],["car","Car (enter cost)"],["none","Walk or bike"]].map(o=>`<option value="${o[0]}" ${b.tr==o[0]?"selected":""}>${o[1]}</option>`).join("")}</select></div>
+ ${fld("inc","Net income per month")}${fld("rent","Rent")}${b.tr=="car"?fld("car","Car: insurance, fuel, upkeep"):""}${fld("food","Groceries")}${fld("ph","Phone")}${fld("net","Internet")}${fld("ut","Hydro and heat")}${fld("ins","Tenant insurance")}${fld("oth","Everything else")}</div>
+ <div id="bres" style="margin-top:10px">${bres()}</div></div>
+ <div class="card"><h2>Key contacts</h2><p style="margin:4px 0"><b>911</b> emergencies · <b>311</b> City of Winnipeg · <b>211</b> community services · <b>988</b> suicide crisis line · <b>204-945-2476</b> Residential Tenancies Branch</p><small>Also useful: Service Canada (SIN), Manitoba Health, MPI and Autopac brokers, Winnipeg Transit, CRA.</small></div>
+ <p><button onclick="tab('g')">Practice these decisions in the 30-day game</button></p>
+ <small>Figures checked in October 2026 from the City of Winnipeg, Manitoba Public Insurance, the Government of Manitoba and rental reports. Rules and prices change, so confirm with the official source before you decide. This is general information, not legal or financial advice.</small>`}
+const WD={me:{x:430,y:250,tx:null,ty:null,a:ld("wpg-av","🧑")},k:{},pe:{},bub:{},chat:[],zone:null,sent:0,on:false,pt:[],dt:0,tm:0};
+const AV=["🧑","👩","👨","🧓","🧕","🧑‍🎓","🧑‍🔧","🧑‍⚕️","🧑🏿","🧑🏽","🧑🏻","🥶"],EM=["👋","😂","❤️","🥶","🔥","👍"];
+const ZN=[["sc","Service Canada","🪪",300,140,["sin"]],["bk","Bank","🏦",220,90,["bank"]],["mh","Manitoba Health","🏥",170,240,["hc"]],["lb","Millennium Library","📚",440,95,["lib"]],["hy","Manitoba Hydro Place","⚡",520,150,["hydro"]],["tr","Transit hub","🚌",520,250,["peggo","pass"]],["ex","Exchange District","🎭",350,50,[],"The heritage and arts quarter. The Fringe and many free events happen here, and it is a good place to meet people."],["jc","Canada Life Centre","🏒",320,285,[],"Jets nights are a community event. Upper-bowl seats are the budget move, and the crowd is half the show."],["mp","MPI and Autopac","🚗",110,140,["lic"]],["st","Newcomer centre","🤝",90,280,["work"]],["os","Osborne Village","☕",330,430,["mood"]],["fk","The Forks","🎡",500,400,["sum"]],["ap","Assiniboine Park","🌳",110,520,["spr"]],["hm","Your place","🏠",260,540,["lease","rtb"]],["sb","St. Boniface","🥖",760,200,[],"The French quarter: bakeries, the cathedral and Festival du Voyageur each February."],["hl","Community hall","🎶",800,430,["comm"]]];
+const LN=["Is it minus thirty yet?","Nips at Salisbury House, trust me.","Mind the potholes!","Plug in your car tonight.","Wear the good mitts.","You can't cross Portage & Main. Nobody can.","Bombers are going to win. Probably."];
+const NP=[["🧓",470,130],["👩‍🎓",260,190],["🧑‍🍳",420,440],["🚴",200,470],["🧑‍🌾",700,330],["🧑‍🎤",780,260],["🧑‍🔧",580,120]].map((n,i)=>({a:n[0],x:n[1],y:n[2],ax:n[1],ay:n[2],tx:n[1],ty:n[2],i}));
+const seas=()=>{const m=new Date().getMonth();return m<=2||m==11?0:m<=4?1:m<=7?2:3},GR=["#eaf2f7","#b9d99a","#9bd68a","#dcb877"],SN=["Winter","Spring","Summer","Fall"];
+const hr=()=>+new Date().toLocaleString("en-CA",{timeZone:"America/Winnipeg",hour:"numeric",hour12:false})%24;
+const inR=(x,y,a,b,c,d)=>x>=a&&x<=c&&y>=b&&y<=d;
+function ok(x,y,me){if(x<12||x>988||y<12||y>628)return false;
+ if((inR(x,y,0,322,555,346)&&!(inR(x,y,372,0,402,999)||inR(x,y,150,0,178,999)))||(inR(x,y,555,0,585,640)&&!(inR(x,y,0,240,999,270)||inR(x,y,0,470,999,500))))return false;
+ if(inR(x,y,398,193,442,237)){if(me&&WD.tm<WD.tn){}else if(me){WD.tm=WD.tn+3000;toast("Portage & Main is closed to pedestrians. Use the concourse.")}return false}return true}
+function wBub(id,t,ms){WD.bub[id]={t:String(t).slice(0,80),u:Date.now()+(ms||5000)}}
+function wSay(id,t,by){wBub(id,t);WD.chat.unshift({n:id=="me"?"You":by?nm2(by):"Neighbour",t:String(t).slice(0,80)});WD.chat=WD.chat.slice(0,6);wChat()}
+function wChat(){const e=$("#wlog");if(e)e.innerHTML=WD.chat.map(c=>`<p style="margin:2px 0"><b>${esc(c.n)}</b> ${esc(c.t)}</p>`).join("")||"<small>Say hello. Everyone in the world will see it.</small>"}
+function wSend(){const i=$("#wsay"),t=i.value.trim();if(!t)return;i.value="";wSay("me",t);try{NET.room&&NET.room.emit("say",{t})}catch(e){}}
+function wEmote(e){wBub("me",e,3500);try{NET.room&&NET.room.emit("emote",{e})}catch(x){}}
+function wAv(i){WD.me.a=AV[i];sv("wpg-av",AV[i]);try{NET.room&&NET.room.presence({x:Math.round(WD.me.x),y:Math.round(WD.me.y),a:AV[i]})}catch(e){}}
+function wGo(id){const z=ZN.find(q=>q[0]==id);for(const o of[[0,34],[0,-34],[44,0],[-44,0]])if(ok(z[3]+o[0],z[4]+o[1])){WD.me.x=z[3]+o[0];WD.me.y=z[4]+o[1];WD.me.tx=null;break}scrollTo(0,0);try{NET.room&&NET.room.presence({x:Math.round(WD.me.x),y:Math.round(WD.me.y),a:WD.me.a})}catch(e){}}
+function wTick(id){if(!PB.c[id]){PB.c[id]=true;sv("wpg-done",PB.c);toast("Checked off in your Playbook")}wPanel()}
+function wNote(){const i=$("#wnote"),t=i.value.trim();if(!t||!WD.zone||!NET.db)return;NET.db.collection("notes").add({b:WD.zone[0],u:NET.me,t:t.slice(0,120),at:Date.now()}).catch(()=>{});i.value="";toast("Tip posted")}
+function wNet(){
+ if(NET.room)try{NET.room.onPeers(c=>{NET.peers=c.peers.filter(p=>!p.isMe);who(NET.peers.map(p=>p.by));wHud()});
+  NET.room.on("say",m=>{if(!m.isMe&&m.data)wSay(m.peer,m.data.t,m.by)});NET.room.on("emote",m=>{if(!m.isMe&&m.data)wBub(m.peer,m.data.e,3500)});
+  NET.room.presence({x:Math.round(WD.me.x),y:Math.round(WD.me.y),a:WD.me.a})}catch(e){}
+ if(NET.db)try{NET.db.collection("notes").orderBy("at","desc").limit(80).onSnapshot(q=>{NET.notes=q.docs.map(d=>d.data());who(NET.notes.map(n=>n.u));wPanel()})}catch(e){}
+}
+function wHud(){const e=$("#whud");if(!e)return;const t=new Date().toLocaleTimeString("en-CA",{timeZone:"America/Winnipeg",hour:"numeric",minute:"2-digit"});e.textContent="Winnipeg "+t+" · "+SN[seas()]+" · "+(NET.room?((NET.peers||[]).length+1)+" in the world":"Solo mode: share this page to meet neighbours")}
+function wPanel(){const z=WD.zone,e=$("#wpan");if(!e)return;
+ if(!z){e.innerHTML="<small>Walk up to a building to see what you can do there. Tap the map or use arrow keys or WASD. Use Take the bus to travel anywhere.</small>";return}
+ const its=z[5].map(id=>IT.find(x=>x[0]==id)).filter(Boolean),notes=(NET.notes||[]).filter(n=>n.b==z[0]).slice(0,4);
+ e.innerHTML=`<h2>${z[2]} ${z[1]}</h2>${its.length?its.map(x=>`<div style="margin:8px 0"><b>${x[3]}</b><small>${x[4]}</small><button style="margin-top:6px" onclick="wTick('${x[0]}')" ${PB.c[x[0]]?"disabled":""}>${PB.c[x[0]]?"Done in your Playbook":"Mark done in my Playbook"}</button></div>`).join(""):`<small>${z[6]}</small>`}${z[0]=="hm"?`<p><button onclick="tab('p')">Open my budget optimizer</button></p>`:""}
+ <h2 style="font-size:18px;margin-top:10px">Neighbours' tips</h2>${notes.length?notes.map(n=>`<div class="tip">${esc(n.t)}<small>${esc(nm2(n.u))}</small></div>`).join(""):"<small>No tips here yet.</small>"}
+ ${NET.db&&NET.me?`<div style="display:flex;gap:6px;margin-top:6px"><input id="wnote" maxlength="120" placeholder="Leave a tip for the next neighbour"><button style="width:auto" onclick="wNote()">Post</button></div>`:"<small>Sign in and share with contributor access to read and leave tips.</small>"}`}
+function wInit(){$("#wav").innerHTML=AV.map((a,i)=>`<button class="chip" aria-label="Avatar ${i+1}" onclick="wAv(${i})">${a}</button>`).join("");
+ $("#wem").innerHTML=EM.map(e=>`<button class="chip" onclick="wEmote('${e}')">${e}</button>`).join("");
+ $("#wgo").innerHTML=ZN.map(z=>`<button class="chip" onclick="wGo('${z[0]}')">${z[2]} ${z[1]}</button>`).join("");wChat();wPanel();wHud();setInterval(wHud,30000);
+ addEventListener("keydown",e=>{if(!WD.on||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;const k=e.key.length==1?e.key.toLowerCase():e.key;WD.k[k]=true;if(k.startsWith("Arrow"))e.preventDefault()});
+ addEventListener("keyup",e=>{const k=e.key.length==1?e.key.toLowerCase():e.key;WD.k[k]=false});addEventListener("resize",()=>{if(WD.on)wStart()})}
+function wStart(){const cv=$("#cv");if(!cv)return;const dp=window.devicePixelRatio||1,r=cv.getBoundingClientRect();cv.width=Math.max(300,Math.round(r.width*dp));cv.height=Math.max(200,Math.round(r.height*dp));
+ WD.cv=cv;WD.ctx=cv.getContext("2d");WD.dp=dp;
+ if(!WD.bound){WD.bound=1;cv.addEventListener("pointerdown",e=>{const b=cv.getBoundingClientRect(),s=b.width/520;WD.me.tx=WD.cx+(e.clientX-b.left)/s;WD.me.ty=WD.cy+(e.clientY-b.top)/s})}
+ if(!WD.run){WD.run=1;WD.last=performance.now();requestAnimationFrame(wLoop)}}
+function wLoop(t){if(!WD.on){WD.run=0;return}WD.dt=Math.min(.05,(t-WD.last)/1000||0);WD.last=t;WD.tn=t;wStep(t);wDraw(t);requestAnimationFrame(wLoop)}
+function wStep(t){const m=WD.me,K=WD.k,dt=WD.dt;let dx=(K.ArrowRight||K.d?1:0)-(K.ArrowLeft||K.a?1:0),dy=(K.ArrowDown||K.s?1:0)-(K.ArrowUp||K.w?1:0),mv=false;
+ if(dx||dy)m.tx=null;else if(m.tx!=null){const ex=m.tx-m.x,ey=m.ty-m.y,d=Math.hypot(ex,ey);if(d<4)m.tx=null;else{dx=ex/d;dy=ey/d}}
+ if(dx||dy){const l=Math.hypot(dx,dy),sp=150*dt/l,nx=m.x+dx*sp,ny=m.y+dy*sp;if(ok(nx,m.y,1)){m.x=nx;mv=true}if(ok(m.x,ny,1)){m.y=ny;mv=true}if(!mv)m.tx=null}
+ WD.mv=mv;let best=null,bd=60;for(const z of ZN){const d=Math.hypot(m.x-z[3],m.y-z[4]);if(d<bd){bd=d;best=z}}if(best!=WD.zone){WD.zone=best;wPanel()}
+ if(mv&&NET.room&&t-WD.sent>250){WD.sent=t;try{NET.room.presence({x:Math.round(m.x),y:Math.round(m.y),a:m.a})}catch(e){}}
+ for(const n of NP){if(Math.hypot(n.tx-n.x,n.ty-n.y)<3){if(Math.random()<.02){n.tx=n.ax+R(-50,50);n.ty=n.ay+R(-40,40)}}else{const a=Math.atan2(n.ty-n.y,n.tx-n.x),nx=n.x+Math.cos(a)*40*dt,ny=n.y+Math.sin(a)*40*dt;if(ok(nx,ny)){n.x=nx;n.y=ny}else{n.tx=n.x;n.ty=n.y}}}}
+function wDraw(t){const c=WD.ctx;if(!c)return;const cv=WD.cv,dp=WD.dp,W=cv.width/dp,H=cv.height/dp,s=W/520,vw=520,vh=H/s,m=WD.me,se=seas();
+ const cx=Math.max(0,Math.min(1000-vw,m.x-vw/2)),cy=Math.max(0,Math.min(640-vh,m.y-vh/2));WD.cx=cx;WD.cy=cy;
+ c.setTransform(dp*s,0,0,dp*s,-cx*dp*s,-cy*dp*s);c.fillStyle=GR[se];c.fillRect(0,0,1000,640);
+ c.fillStyle="#9aa7b2";c.fillRect(0,210,555,10);c.fillRect(416,0,10,322);
+ c.fillStyle=se==0?"#a9cde3":"#5aa9d6";c.fillRect(0,322,555,24);c.fillRect(555,0,30,640);
+ c.fillStyle="#8b6b4a";for(const b of[[372,322,30,24],[150,322,28,24],[555,240,30,30],[555,470,30,30]])c.fillRect(b[0],b[1],b[2],b[3]);
+ c.fillStyle="#6d7b88";c.fillRect(398,193,44,44);c.fillStyle="#fff";c.font="600 7px sans-serif";c.textAlign="center";c.textBaseline="middle";c.fillText("Portage & Main",420,215);
+ for(const z of ZN){c.fillStyle="rgba(255,255,255,.92)";c.beginPath();if(c.roundRect)c.roundRect(z[3]-38,z[4]-23,76,46,6);else c.rect(z[3]-38,z[4]-23,76,46);c.fill();c.lineWidth=z==WD.zone?2.5:1;c.strokeStyle=z==WD.zone?"#e8590c":"#b7c8d6";c.stroke();
+  c.font="17px serif";c.fillStyle="#000";c.fillText(z[2],z[3],z[4]-5);c.font="600 7px sans-serif";c.fillStyle="#0f2438";c.fillText(z[1],z[3],z[4]+14)}
+ const E=NP.map(n=>({x:n.x,y:n.y,a:n.a,npc:n})),now=Date.now();
+ for(const p of NET.peers||[]){const pr=p.presence||{};if(typeof pr.x!="number")continue;const e=WD.pe[p.peer]||(WD.pe[p.peer]={x:pr.x,y:pr.y});e.x+=(pr.x-e.x)*.2;e.y+=(pr.y-e.y)*.2;E.push({x:e.x,y:e.y,a:String(pr.a||"🧑").slice(0,6),n:NET.names[p.by]||"Neighbour",b:WD.bub[p.peer]})}
+ E.push({x:m.x,y:m.y,a:m.a,n:"You",b:WD.bub.me,me:1});E.sort((a,b)=>a.y-b.y);
+ for(const e of E){const by=e.y-(e.me&&WD.mv?Math.abs(Math.sin(t/110))*2:0);c.fillStyle="rgba(0,0,0,.18)";c.beginPath();c.ellipse(e.x,e.y+7,8,3,0,0,7);c.fill();c.font="20px serif";c.fillStyle="#000";c.fillText(e.a,e.x,by-4);
+  if(e.n){c.font="600 7px sans-serif";c.fillStyle=e.me?"#e8590c":"#0f2438";c.fillText(e.n,e.x,e.y+14)}
+  let bt=e.b&&e.b.u>now?e.b.t:e.npc&&Math.hypot(e.x-m.x,e.y-m.y)<80?LN[(e.npc.i+Math.floor(t/9000))%LN.length]:"";
+  if(bt){c.font="600 7px sans-serif";const w=Math.min(150,c.measureText(bt).width+10);c.fillStyle="#fff";c.beginPath();if(c.roundRect)c.roundRect(e.x-w/2,by-30,w,13,5);else c.rect(e.x-w/2,by-30,w,13);c.fill();c.fillStyle="#0f2438";c.fillText(bt,e.x,by-23.5,140)}}
+ c.setTransform(dp,0,0,dp,0,0);
+ if(se==0||se==3){if(!WD.pt.length)for(let i=0;i<45;i++)WD.pt.push({x:Math.random()*W,y:Math.random()*H,v:20+Math.random()*30});c.fillStyle=se==0?"rgba(255,255,255,.9)":"rgba(214,120,30,.8)";for(const q of WD.pt){q.y+=q.v*WD.dt;q.x+=Math.sin(q.y/30)*.4;if(q.y>H){q.y=-4;q.x=Math.random()*W}c.fillRect(q.x,q.y,se==0?2.2:3,se==0?2.2:2)}}
+ const h=hr(),na=h>=21||h<6?.42:h>=18?.18:h<8?.14:0;if(na){c.fillStyle="rgba(10,20,60,"+na+")";c.fillRect(0,0,W,H)}
+ const mw=90,mh=58,mx=W-mw-6;c.fillStyle="rgba(255,255,255,.8)";c.fillRect(mx,6,mw,mh);c.fillStyle="#5aa9d6";c.fillRect(mx+555*.09,6,2.7,mh);c.fillRect(mx,6+322*.09,555*.09,2.2);
+ c.fillStyle="#8a98a6";for(const z of ZN)c.fillRect(mx+z[3]*.09-1.5,6+z[4]*.09-1.5,3,3);c.fillStyle="#2b8a3e";for(const p of NET.peers||[]){const pr=p.presence||{};if(typeof pr.x=="number")c.fillRect(mx+pr.x*.09-1.5,6+pr.y*.09-1.5,3,3)}
+ c.fillStyle="#e8590c";c.fillRect(mx+m.x*.09-2,6+m.y*.09-2,4,4)}
+wInit();
+pbRender();
+render();netInit();tab('w');
+</script></body></html>
